@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qutbi Itinerary Studio</title>
+  <meta name="description" content="Create branded Qutbi Tours & Holidays itinerary PDFs.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+  <header class="app-header">
+    <a class="app-brand" href="#" aria-label="Qutbi Itinerary Studio home">
+      <span class="brand-mark">Q</span>
+      <span><strong>Qutbi</strong><small>Itinerary Studio</small></span>
+    </a>
+    <div class="status"><span></span> Staff workspace</div>
+  </header>
+
+  <main class="workspace">
+    <aside class="editor" aria-label="Itinerary editor">
+      <div class="eyebrow">Proposal builder</div>
+      <h1>Turn a WhatsApp itinerary into a beautiful proposal.</h1>
+      <p class="intro">Paste your package text, review the details and export a client-ready PDF.</p>
+
+      <label for="packageType">Select package theme</label>
+      <select id="packageType" class="package-select">
+        <optgroup label="Domestic packages">
+          <option value="kashmir">Kashmir package</option>
+          <option value="himachal" selected>Himachal package</option>
+          <option value="ladakh">Leh–Ladakh package</option>
+          <option value="kerala">Kerala package</option>
+          <option value="goa">Goa package</option>
+          <option value="rajasthan">Rajasthan package</option>
+          <option value="uttarakhand">Uttarakhand package</option>
+          <option value="sikkim">Sikkim / Darjeeling package</option>
+          <option value="northeast">Northeast India package</option>
+          <option value="andaman">Andaman package</option>
+          <option value="domestic">Any other domestic package</option>
+        </optgroup>
+        <optgroup label="International packages">
+          <option value="dubai">Dubai</option>
+          <option value="singapore">Singapore</option>
+          <option value="kazakhstan">Kazakhstan</option>
+          <option value="vietnam">Vietnam</option>
+          <option value="mauritius">Mauritius</option>
+          <option value="turkey">Turkey</option>
+          <option value="thailand">Thailand</option>
+          <option value="bali">Bali / Indonesia</option>
+          <option value="malaysia">Malaysia</option>
+          <option value="maldives">Maldives</option>
+          <option value="srilanka">Sri Lanka</option>
+          <option value="azerbaijan">Azerbaijan</option>
+          <option value="georgia">Georgia</option>
+          <option value="japan">Japan</option>
+          <option value="europe">London / Europe</option>
+          <option value="international">Other international package</option>
+        </optgroup>
+      </select>
+      <p class="field-help">The selected package controls the colours, cover photograph and destination styling.</p>
+
+      <label for="sourceText">Itinerary text</label>
+      <textarea id="sourceText" rows="14" spellcheck="true"></textarea>
+      <div class="button-row">
+        <button class="primary" id="analyzeBtn" type="button">Analyse itinerary</button>
+        <button class="secondary" id="resetBtn" type="button">Load sample</button>
+      </div>
+
+      <section class="settings-card">
+        <div>
+          <h2>Brand & photos</h2>
+          <p>Customise what the customer sees.</p>
+        </div>
+        <label class="upload-control" for="logoInput">Upload logo<input id="logoInput" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label>
+        <label class="switch-row"><span>Show package price</span><input id="showPrice" type="checkbox" checked></label>
+        <label class="switch-row"><span>Show contact details</span><input id="showContact" type="checkbox" checked></label>
+        <label class="switch-row"><span>Show terms & conditions</span><input id="showTerms" type="checkbox" checked></label>
+        <div class="terms-editor" id="termsEditor">
+          <label for="termsText">Terms & conditions</label>
+          <textarea id="termsText" rows="7">Rates are subject to availability at the time of booking.
+Booking is confirmed only after receipt of the required advance payment.
+Cancellation and amendment charges will apply as per hotel, airline and service-provider policies.
+Guests must verify names, travel dates and identification details before confirmation.
+Qutbi Tours & Holidays is not responsible for delays or changes caused by weather, government restrictions or other circumstances beyond our control.
+The remaining balance must be paid by the due date mentioned at confirmation.</textarea>
+          <small>Write one condition per line. Changes appear instantly in the PDF.</small>
+        </div>
+        <label for="heroChoice">Cover photograph</label>
+        <select id="heroChoice">
+          <option value="kasol">Kasol mountains</option>
+          <option value="tosh">Tosh valley</option>
+          <option value="parvati">Parvati landscape</option>
+          <option value="kashmir">Kashmir valley</option>
+          <option value="ladakh">Ladakh mountains</option>
+          <option value="kerala">Kerala backwaters</option>
+          <option value="domestic">Beautiful India</option>
+          <option value="dubai">Dubai skyline</option>
+          <option value="singapore">Singapore skyline</option>
+          <option value="kazakhstan">Kazakhstan landscape</option>
+          <option value="vietnam">Vietnam landscape</option>
+          <option value="mauritius">Mauritius coast</option>
+          <option value="europe">London and Europe</option>
+          <option value="international">World travel</option>
+        </select>
+        <button class="shuffle-button" id="shufflePhoto" type="button">Shuffle cover image</button>
+        <p class="licence-note">Demo photographs are from Unsplash and retain photographer attribution. Production search will use licensed image APIs.</p>
+      </section>
+    </aside>
+
+    <section class="preview-shell" aria-label="PDF preview">
+      <div class="preview-toolbar">
+        <div><strong>Live PDF preview</strong><span>A4 · client copy</span></div>
+        <button class="download" id="printBtn" type="button">Download PDF</button>
+      </div>
+
+      <article class="proposal" id="proposal">
+        <section class="cover">
+          <img class="cover-photo" id="coverPhoto" alt="Mountain destination">
+          <div class="cover-shade"></div>
+          <div class="cover-top">
+            <div class="proposal-brand">
+              <div class="proposal-brand-mark" id="proposalBrandMark">Q</div>
+              <img id="customLogo" alt="Qutbi Tours & Holidays logo">
+              <div><strong>QUTBI TOURS</strong><small>& HOLIDAYS</small></div>
+            </div>
+            <div class="proposal-label">TRAVEL PROPOSAL</div>
+          </div>
+          <div class="cover-content">
+            <div class="cover-kicker" id="coverKicker">HIMACHAL PRADESH · INDIA</div>
+            <h2 id="packageTitle">Kasol – Tosh<br>Tour Package</h2>
+            <p id="packageSubtitle">A winter escape into the Parvati Valley</p>
+            <div class="trip-facts">
+              <div><span>TRAVEL DATE</span><strong id="travelDate">27 December 2026</strong></div>
+              <div><span>DURATION</span><strong id="duration">3 Nights / 4 Days</strong></div>
+              <div><span>PICKUP & DROP</span><strong id="route">Delhi – Delhi</strong></div>
+            </div>
+          </div>
+          <div class="photo-credit" id="photoCredit"></div>
+        </section>
+
+        <section class="proposal-page content-page">
+          <div class="page-heading">
+            <div><span>Your journey</span><h2>Day-by-day itinerary</h2></div>
+            <p>Thoughtfully planned by your Qutbi travel consultant.</p>
+          </div>
+          <div class="timeline" id="timeline"></div>
+        </section>
+
+        <section class="proposal-page details-page">
+          <div class="price-card" id="priceCard">
+            <span>PACKAGE COST</span>
+            <strong id="price">₹12,500</strong>
+            <small id="priceQualifier">Per person</small>
+          </div>
+          <div class="included-card">
+            <span class="section-kicker">WHAT'S INCLUDED</span>
+            <h2>Everything you need for a smooth escape.</h2>
+            <ul id="inclusions"></ul>
+          </div>
+          <div class="note-card">
+            <strong>Please note</strong>
+            <p id="note">Local transfers and sightseeing transportation are subject to confirmation.</p>
+          </div>
+          <section class="terms-card" id="termsCard">
+            <span>TERMS & CONDITIONS</span>
+            <ol id="termsList"></ol>
+          </section>
+          <footer class="proposal-footer" id="proposalFooter">
+            <div class="footer-brand"><span class="brand-mark">Q</span><div><strong>Qutbi Tours & Holidays</strong><small>Your Journey, Our Legacy</small></div></div>
+            <div class="contact"><strong>+91 90289 39352</strong><span>Nashik, Maharashtra · India</span></div>
+          </footer>
+        </section>
+      </article>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
+
