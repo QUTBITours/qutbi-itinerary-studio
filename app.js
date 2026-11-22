@@ -224,6 +224,9 @@ function render(data) {
   $('note').textContent = data.note || 'All services are subject to availability at the time of confirmation.';
   $('timeline').innerHTML = data.days.map(day => `<article class="day"><div class="day-number"><div><span>DAY</span><strong>${String(day.number).padStart(2, '0')}</strong></div></div><div><div class="day-head"><h3>${day.title}</h3><time>${day.date}</time></div><ul>${day.bullets.map(item => `<li>${item}</li>`).join('')}</ul></div></article>`).join('');
   $('inclusions').innerHTML = (data.inclusions.length ? data.inclusions : ['Accommodation as per itinerary', 'Meals and transfers as confirmed']).map(item => `<li>${item}</li>`).join('');
+  $('proposal').classList.toggle('dense-itinerary', data.days.length > 6);
+  $('proposal').classList.toggle('very-dense-itinerary', data.days.length > 9);
+  $('proposal').classList.toggle('dense-details', data.inclusions.length > 6);
   applyPackageTheme($('packageType').value);
 }
 
@@ -321,7 +324,32 @@ $('logoInput').addEventListener('change', event => {
   reader.onload = () => { $('customLogo').src = reader.result; $('customLogo').style.display = 'block'; $('proposalBrandMark').style.display = 'none'; showToast('Logo added to this proposal'); };
   reader.readAsDataURL(file);
 });
-$('printBtn').addEventListener('click', () => { showToast('Choose “Save as PDF” in the print window'); setTimeout(() => window.print(), 250); });
+async function prepareAndPrint() {
+  const button = $('printBtn');
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Preparing PDF…';
+  showToast('Preparing photographs and fonts for your PDF');
+  try {
+    if (document.fonts?.ready) await document.fonts.ready;
+    const image = $('coverPhoto');
+    for (let attempt = 0; attempt < 3 && (!image.complete || !image.naturalWidth); attempt += 1) {
+      try {
+        await Promise.race([image.decode(), new Promise(resolve => setTimeout(resolve, 3000))]);
+      } catch {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    showToast('In the print window, choose “Save as PDF”');
+    window.print();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+$('printBtn').addEventListener('click', prepareAndPrint);
 
 sourceText.value = localStorage.getItem('qutbi-itinerary-draft') || sampleText;
 $('packageType').value = localStorage.getItem('qutbi-package-theme') || 'himachal';
