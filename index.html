@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
   <header class="app-header">
@@ -50,6 +50,7 @@
           <option value="thailand">Thailand</option>
           <option value="bali">Bali / Indonesia</option>
           <option value="malaysia">Malaysia</option>
+          <option value="malaysia-singapore">Malaysia &amp; Singapore package</option>
           <option value="maldives">Maldives</option>
           <option value="srilanka">Sri Lanka</option>
           <option value="azerbaijan">Azerbaijan</option>
@@ -60,6 +61,10 @@
         </optgroup>
       </select>
       <p class="field-help">The selected package controls the colours, cover photograph and destination styling.</p>
+
+      <label for="packageTitleInput">PDF cover title</label>
+      <input id="packageTitleInput" class="title-input" type="text" value="Himachal Package" maxlength="80">
+      <p class="field-help">Only this short package name appears as the large cover heading.</p>
 
       <label for="sourceText">Itinerary text</label>
       <textarea id="sourceText" rows="14" spellcheck="true"></textarea>
@@ -140,13 +145,7 @@ The remaining balance must be paid by the due date mentioned at confirmation.</t
           <div class="photo-credit" id="photoCredit"></div>
         </section>
 
-        <section class="proposal-page content-page">
-          <div class="page-heading">
-            <div><span>Your journey</span><h2>Day-by-day itinerary</h2></div>
-            <p>Thoughtfully planned by your Qutbi travel consultant.</p>
-          </div>
-          <div class="timeline" id="timeline"></div>
-        </section>
+        <div id="itineraryPages"></div>
 
         <section class="proposal-page details-page">
           <div class="price-card" id="priceCard">
@@ -176,7 +175,7 @@ The remaining balance must be paid by the due date mentioned at confirmation.</t
     </section>
   </main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
 
