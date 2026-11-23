@@ -95,6 +95,7 @@ const packageThemes = {
   thailand: { photo: 'mauritius', palette: 'mauritius', region: 'THAILAND', subtitle: 'Tropical shores, vibrant cities and warm hospitality' },
   bali: { photo: 'kerala', palette: 'kerala', region: 'BALI · INDONESIA', subtitle: 'Island traditions, lush landscapes and restorative escapes' },
   malaysia: { photo: 'singapore', palette: 'singapore', region: 'MALAYSIA', subtitle: 'Modern cities, tropical nature and diverse experiences' },
+  'malaysia-singapore': { photo: 'singapore', palette: 'singapore', region: 'MALAYSIA · SINGAPORE', title: 'Malaysia & Singapore Package', route: 'Kuala Lumpur – Singapore', subtitle: 'Two destinations, one remarkable journey' },
   maldives: { photo: 'mauritius', palette: 'mauritius', region: 'MALDIVES', subtitle: 'Private-island calm and endless shades of blue' },
   srilanka: { photo: 'kerala', palette: 'kerala', region: 'SRI LANKA', subtitle: 'Tea country, wildlife, heritage and beautiful coastlines' },
   azerbaijan: { photo: 'kazakhstan', palette: 'kazakhstan', region: 'AZERBAIJAN', subtitle: 'A fascinating meeting point of old culture and new design' },
@@ -123,9 +124,10 @@ function parseItinerary(text) {
   const dateRange = clean((normalized.match(/(\d{1,2}(?:st|nd|rd|th)?\s*[–—-]\s*\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+20\d{2})?)/i) || [])[1]);
   const durationMatch = clean((normalized.match(/(\d+\s*Nights?\s*\/\s*\d+\s*Days?)/i) || [])[1]);
   const totalPrice = normalized.match(/₹\s*[\d,]+\s*(?:\/-)?\s*total/i);
+  const totalContext = /total\s+package\s+price[\s\S]{0,120}₹/i.test(normalized);
   const perPersonPrice = normalized.match(/₹\s*[\d,]+\s*(?:\/-)?\s*(?:per person|\/\s*person)/i);
   const anyPrice = normalized.match(/₹\s*[\d,]+/);
-  const totalAudience = clean((normalized.match(/₹\s*[\d,]+\s*(?:\/-)?\s*total\s+for\s+([^\n(]+)/i) || [])[1]);
+  const totalAudience = clean((normalized.match(/(?:₹\s*[\d,]+|total\s+package\s+price)[\s\S]{0,100}?((?:all\s+)?\d+\s+(?:guests|adults|persons?))/i) || [])[1]);
   const selectedPrice = totalPrice || perPersonPrice || anyPrice;
   const days = extractDays(normalized);
   const inclusionSection = normalized.match(/(?:Package Inclusions|Package includes|Inclusions|Cost includes|Tour includes)\s*:?\s*([\s\S]*?)(?=(?:\n|\s)(?:Payable separately|Exclusions?|Cost excludes|Package excludes|Note|Terms|If you prefer|QUTBI)\b|$)/i);
@@ -137,11 +139,11 @@ function parseItinerary(text) {
   const title = titleLine.replace(/\s*\|\s*Qutbi Tours.*$/i, '').replace(/\s*(?:TOUR|HOLIDAY|TRAVEL)\s+PACKAGE\s*/i, '').trim() || 'Custom';
   return {
     title,
-    travelDate: field('Travel Date') || dateRange,
+    travelDate: field('Travel Date') || dateRange || inferTravelRange(days),
     duration: field('Duration') || durationMatch,
     route: field('Pickup & Drop') || inferRoute(days),
     price: selectedPrice ? (selectedPrice[0].match(/₹\s*[\d,]+/) || [''])[0].replace(/\s/g, '') : 'Price on request',
-    priceQualifier: totalPrice ? (totalAudience ? `Total for ${totalAudience}` : 'Total package') : 'Per person',
+    priceQualifier: (totalPrice || totalContext) ? (totalAudience ? `Total for ${totalAudience}` : 'Total package') : 'Per person',
     days, inclusions, note: notes
   };
 }
@@ -149,7 +151,10 @@ function parseItinerary(text) {
 function extractDays(text) {
   const months = 'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?';
   const dateStart = `\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${months})(?:\\s+20\\d{2})?`;
-  let prepared = text.replace(new RegExp(`\\s+(?=(?:Day\\s*\\d+\\b|${dateStart}\\s*[–—-]))`, 'gi'), '\n');
+  const hasNumberedDays = /Day\s*\d+\b/i.test(text);
+  const nextHeading = hasNumberedDays ? 'Day\\s*\\d+\\s*(?:[–—:-]|\\|)' : `${dateStart}\\s*[–—-]`;
+  let prepared = text.replace(new RegExp(`\\s+(?=${nextHeading})`, 'gi'), '\n');
+  prepared = prepared.replace(/\s+(?=(?:PACKAGE COST|Package Inclusions|Package includes|Inclusions|Cost includes|Tour includes|Payable separately|Exclusions?|Cost excludes|Package excludes|Note|Terms)\b)/gi, '\n');
   const sectionStop = /^(?:PACKAGE COST|Package Inclusions|Package includes|Inclusions|Cost includes|Tour includes|Payable separately|Exclusions?|Cost excludes|Package excludes|Note|Terms)\b/i;
   const days = [];
   let active = null;
@@ -189,8 +194,14 @@ function parseNumberedHeading(value, months) {
   const dated = line.match(datePattern);
   const remainder = dated ? dated[2] : line;
   const parts = remainder.split(/\s*\|\s*|:\s+/, 2);
-  const title = clean(parts[0]) || 'Planned experiences';
-  const detailsText = parts.length > 1 ? remainder.slice(remainder.indexOf(parts[1])) : '';
+  let title = clean(parts[0]) || 'Planned experiences';
+  let detailsText = parts.length > 1 ? remainder.slice(remainder.indexOf(parts[1])) : '';
+  if (/\.\s+/.test(title)) {
+    const firstStop = title.indexOf('. ');
+    const trailingTitleText = title.slice(firstStop + 2);
+    title = title.slice(0, firstStop);
+    detailsText = [trailingTitleText, detailsText].filter(Boolean).join('. ');
+  }
   return { date: dated ? clean(dated[1]) : '', title, details: splitDetails(detailsText) };
 }
 
@@ -209,34 +220,84 @@ function inferRoute(days) {
   if (!days.length) return 'As per itinerary';
   const start = days[0].title.replace(/arrival in\s+/i, '').trim();
   const endText = `${days.at(-1).title} ${days.at(-1).bullets.join(' ')}`;
+  if (/^(?:planned experiences|day\s*\d+|trip overview)$/i.test(start)) return 'As per itinerary';
   if (/srinagar/i.test(`${start} ${endText}`)) return 'Srinagar – Srinagar';
   if (/delhi/i.test(endText)) return `${start || 'Delhi'} – Delhi`;
   return start ? `${start} – ${start}` : 'As per itinerary';
 }
 
+function inferTravelRange(days) {
+  const matches = days.flatMap(day => `${day.date} ${day.bullets.join(' ')}`.match(/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+20\d{2})?\b/gi) || []);
+  if (!matches.length) return '';
+  return matches.length === 1 ? clean(matches[0]) : `${clean(matches[0])} – ${clean(matches.at(-1))}`;
+}
+
 function render(data) {
-  $('packageTitle').innerHTML = `${data.title.replace(/\s*[–-]\s*/, ' – ')}<br>Tour Package`;
+  updateCoverTitle($('packageTitleInput').value || data.title);
   $('travelDate').textContent = data.travelDate || 'Dates on request';
   $('duration').textContent = data.duration || `${Math.max(data.days.length - 1, 1)} Nights / ${data.days.length} Days`;
-  $('route').textContent = data.route || 'As per itinerary';
+  const selectedTheme = packageThemes[$('packageType').value] || packageThemes.domestic;
+  $('route').textContent = data.route && data.route !== 'As per itinerary' ? data.route : (selectedTheme.route || 'As per itinerary');
   $('price').textContent = data.price;
   $('priceQualifier').textContent = data.priceQualifier || 'Per person';
   $('note').textContent = data.note || 'All services are subject to availability at the time of confirmation.';
-  $('timeline').innerHTML = data.days.map(day => `<article class="day"><div class="day-number"><div><span>DAY</span><strong>${String(day.number).padStart(2, '0')}</strong></div></div><div><div class="day-head"><h3>${day.title}</h3><time>${day.date}</time></div><ul>${day.bullets.map(item => `<li>${item}</li>`).join('')}</ul></div></article>`).join('');
+  renderItineraryPages(data.days);
   $('inclusions').innerHTML = (data.inclusions.length ? data.inclusions : ['Accommodation as per itinerary', 'Meals and transfers as confirmed']).map(item => `<li>${item}</li>`).join('');
-  $('proposal').classList.toggle('dense-itinerary', data.days.length > 6);
-  $('proposal').classList.toggle('very-dense-itinerary', data.days.length > 9);
+  $('proposal').classList.toggle('dense-itinerary', data.days.length > 8);
+  $('proposal').classList.toggle('very-dense-itinerary', data.days.length > 14);
   $('proposal').classList.toggle('dense-details', data.inclusions.length > 6);
-  applyPackageTheme($('packageType').value);
+  applyPackageTheme($('packageType').value, false);
 }
 
-function applyPackageTheme(type) {
+function updateCoverTitle(value) {
+  let title = clean(value).replace(/\s+(?:tour\s+)?package\s*$/i, '').trim();
+  if (!title) title = 'Custom';
+  title = `${title} Package`;
+  $('packageTitle').textContent = title;
+  $('packageTitle').classList.toggle('long-title', title.length > 28);
+}
+
+function itineraryDayMarkup(day) {
+  return `<article class="day"><div class="day-number"><div><span>DAY</span><strong>${String(day.number).padStart(2, '0')}</strong></div></div><div><div class="day-head"><h3>${day.title}</h3><time>${day.date}</time></div><ul>${day.bullets.map(item => `<li>${item}</li>`).join('')}</ul></div></article>`;
+}
+
+function paginateDays(days) {
+  const pages = [];
+  let page = [];
+  let pageWeight = 0;
+  for (const day of days) {
+    const characters = day.bullets.join(' ').length;
+    const weight = 3 + (day.bullets.length * 0.7) + (characters / 260);
+    if (page.length && pageWeight + weight > 38) {
+      pages.push(page);
+      page = [];
+      pageWeight = 0;
+    }
+    page.push(day);
+    pageWeight += weight;
+  }
+  if (page.length) pages.push(page);
+  return pages.length ? pages : [[]];
+}
+
+function renderItineraryPages(days) {
+  const pages = paginateDays(days);
+  $('itineraryPages').innerHTML = pages.map((page, index) => `<section class="proposal-page content-page${page.length > 5 ? ' dense-page' : ''}"><div class="page-heading"><div><span>${index === 0 ? 'Your journey' : 'Your journey · continued'}</span><h2>${index === 0 ? 'Day-by-day itinerary' : 'More days to discover'}</h2></div><p>Thoughtfully planned by your Qutbi travel consultant.</p></div><div class="timeline">${page.map(itineraryDayMarkup).join('')}</div></section>`).join('');
+}
+
+function applyPackageTheme(type, resetTitle = true) {
   const theme = packageThemes[type] || packageThemes.domestic;
   document.documentElement.dataset.package = theme.palette || type;
   $('coverKicker').textContent = theme.region;
   $('packageSubtitle').textContent = theme.subtitle;
   $('heroChoice').value = theme.photo;
   setPhoto(theme.photo, type === 'domestic' || type === 'international');
+  if (resetTitle || !$('packageTitleInput').value.trim()) {
+    const optionLabel = $('packageType').selectedOptions?.[0]?.textContent || theme.title || 'Custom Package';
+    $('packageTitleInput').value = theme.title || optionLabel.replace(/^Any other\s+/i, 'Custom ');
+    updateCoverTitle($('packageTitleInput').value);
+    localStorage.setItem('qutbi-cover-title', $('packageTitleInput').value);
+  }
   localStorage.setItem('qutbi-package-theme', type);
 }
 
@@ -307,6 +368,10 @@ function analyze() {
 $('analyzeBtn').addEventListener('click', analyze);
 $('resetBtn').addEventListener('click', () => { sourceText.value = sampleText; analyze(); });
 $('packageType').addEventListener('change', event => applyPackageTheme(event.target.value));
+$('packageTitleInput').addEventListener('input', event => {
+  updateCoverTitle(event.target.value);
+  localStorage.setItem('qutbi-cover-title', event.target.value);
+});
 $('packageType').addEventListener('click', event => {
   if (event.target.value === 'domestic' || event.target.value === 'international') setPhoto(packageThemes[event.target.value].photo, true);
 });
@@ -353,9 +418,10 @@ $('printBtn').addEventListener('click', prepareAndPrint);
 
 sourceText.value = localStorage.getItem('qutbi-itinerary-draft') || sampleText;
 $('packageType').value = localStorage.getItem('qutbi-package-theme') || 'himachal';
+$('packageTitleInput').value = localStorage.getItem('qutbi-cover-title') || '';
 $('termsText').value = localStorage.getItem('qutbi-terms') || $('termsText').value;
 $('showTerms').checked = localStorage.getItem('qutbi-show-terms') !== 'false';
-applyPackageTheme($('packageType').value);
+applyPackageTheme($('packageType').value, !$('packageTitleInput').value.trim());
 renderTerms();
 toggleTerms($('showTerms').checked);
 analyze();
