@@ -282,7 +282,8 @@ function paginateDays(days) {
 
 function renderItineraryPages(days) {
   const pages = paginateDays(days);
-  $('itineraryPages').innerHTML = pages.map((page, index) => `<section class="proposal-page content-page${page.length > 5 ? ' dense-page' : ''}"><div class="page-heading"><div><span>${index === 0 ? 'Your journey' : 'Your journey · continued'}</span><h2>${index === 0 ? 'Day-by-day itinerary' : 'More days to discover'}</h2></div><p>Thoughtfully planned by your Qutbi travel consultant.</p></div><div class="timeline">${page.map(itineraryDayMarkup).join('')}</div></section>`).join('');
+  const tripSummary = `<div class="itinerary-summary"><div><span>TRAVEL DATE</span><strong>${$('travelDate').textContent}</strong></div><div><span>DURATION</span><strong>${$('duration').textContent}</strong></div><div><span>PICKUP & DROP</span><strong>${$('route').textContent}</strong></div></div>`;
+  $('itineraryPages').innerHTML = pages.map((page, index) => `<section class="proposal-page content-page${page.length > 5 ? ' dense-page' : ''}"><div class="page-heading"><div><span>${index === 0 ? 'Your journey' : 'Your journey · continued'}</span><h2>${index === 0 ? 'Day-by-day itinerary' : 'More days to discover'}</h2></div><p>Thoughtfully planned by your Qutbi travel consultant.</p></div>${index === 0 ? tripSummary : ''}<div class="timeline">${page.map(itineraryDayMarkup).join('')}</div></section>`).join('');
 }
 
 function applyPackageTheme(type, resetTitle = true) {
